@@ -29,4 +29,4 @@ main['attributes.created_date'] = [datetime.utcfromtimestamp(item).strftime('%Y-
 main['attributes.last_edited_date'] = [datetime.utcfromtimestamp(item).strftime('%Y-%m-%d %H:%M:%S') for item in main['attributes.last_edited_date'].astype(int)]
 main['attributes.district'].nunique()
 main['attributes.hospital_name'].nunique()
-main.to_csv('statedata.csv',index=False)
+main.to_csv('abstract.csv',index=False)
