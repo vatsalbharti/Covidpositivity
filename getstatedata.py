@@ -1,62 +1,32 @@
-# script to calculate India state level test positivity data
-# state case data https://api.covid19india.org/csv/latest/states.csv
-# state testing data https://api.covid19india.org/csv/latest/statewise_tested_numbers_data.csv
-# the data is output to statedata.csv
-
+import requests
 import pandas as pd
-from datetime import date, datetime, timedelta
-import pytz
-from urllib.error import HTTPError
+from datetime import datetime
+import warnings
+warnings.filterwarnings("ignore")
 
-# https://www.w3resource.com/python-exercises/date-time-exercise/python-date-time-exercise-50.php
-def daterange(date1, date2):
-    for n in range(int ((date2 - date1).days)+1):
-        yield date1 + timedelta(n)
+range_ = [x for x in range(0,2000000,2000)]
 
-states = ['Andaman and Nicobar Islands', 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chandigarh', 'Chhattisgarh', 'Dadra and Nagar Haveli and Daman and Diu', 'Delhi', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'India', 'Jammu and Kashmir', 'Jharkhand', 'Karnataka', 'Kerala', 'Ladakh', 'Lakshadweep', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Puducherry', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal']
+district_hospital = []
 
-IST = pytz.timezone('Asia/Kolkata')
-today = datetime.now(IST)
-print('checking for new state data on', today)
-
-try:
-    cases = pd.read_csv('https://api.covid19india.org/csv/latest/states.csv')
-    cases.index = pd.to_datetime(cases['Date'], dayfirst = True)
-
-    tests = pd.read_csv('https://api.covid19india.org/csv/latest/statewise_tested_numbers_data.csv')
-    tests.index = pd.to_datetime(tests['Updated On'], dayfirst = True)
-
-    df = pd.DataFrame(columns = ['Date' , 'State', 'Weekly Cases' , 'Weekly Tests', 'Test Positivity Rate'])
-
-    for state in states:
-        statecases = cases[cases['State'] == state]['Confirmed']
-        statetests = tests[tests['State'] == state]['Total Tested']
+for x in range_:
+    try:
+        offset = f'https://gis-dm.ndma.gov.in/server/rest/services/Oxy/district_hospital_details/FeatureServer/0/query?f=json&where=1%3D1&returnGeometry=false&spatialRel=esriSpatialRelIntersects&outFields=*&orderByFields=objectid%20ASC&outSR=102100&resultOffset={x}&resultRecordCount=2000'
+        data = requests.get(offset,verify=False)
+        df = pd.json_normalize(data.json()['features'])
+        district_hospital.append(df)
+        if len(data.json()['features'])==0:
+            break
+        else:
+            pass
+    except:
+        pass
         
-        for dt in daterange(date(2021, 4, 1), today.date()):
-        
-            currentdate = dt.strftime("%Y-%m-%d")            
-
-            # calculate cases & tests in the 7 days prior to the current date
-            # for consistency with district level data
-            t0 = (dt - pd.Timedelta(1, unit='D')).strftime("%Y-%m-%d")
-            t1 = (dt - pd.Timedelta(8, unit='D')).strftime("%Y-%m-%d")
-
-            try:
-                stateweeklycases = statecases[statecases.index == t0].iloc[0] - statecases[statecases.index == t1].iloc[0]
-                stateweeklytests = statetests[statetests.index == t0].iloc[0] - statetests[statetests.index == t1].iloc[0]
-
-                df = df.append({'Date': currentdate,
-                         'State': state.upper(),
-                         'Weekly Cases': round(stateweeklycases),
-                         'Weekly Tests': round(stateweeklytests),
-                         'Test Positivity Rate': round(stateweeklycases / stateweeklytests,3)
-                        }, ignore_index=True)
-            except:
-                pass
-
-    df = df.sort_values(by=['Date', 'State'])
-    df.to_csv("statedata.csv", columns = ['Date', 'State', 'Weekly Cases', 'Weekly Tests', 'Test Positivity Rate'], header = True, index = False)
-    print('output state data to file')
-
-except HTTPError as err:
-    print(err)
+main = pd.concat(district_hospital)
+main = main.drop_duplicates()
+main['attributes.created_date'] = [item[:-3] for item in main['attributes.created_date'].astype(str)]
+main['attributes.last_edited_date'] = [item[:-3] for item in main['attributes.last_edited_date'].astype(str)]
+main['attributes.created_date'] = [datetime.utcfromtimestamp(item).strftime('%Y-%m-%d %H:%M:%S') for item in main['attributes.created_date'].astype(int)]
+main['attributes.last_edited_date'] = [datetime.utcfromtimestamp(item).strftime('%Y-%m-%d %H:%M:%S') for item in main['attributes.last_edited_date'].astype(int)]
+main['attributes.district'].nunique()
+main['attributes.hospital_name'].nunique()
+main.to_csv('statedata.csv',index=False)
