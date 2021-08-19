@@ -1,1 +1,1 @@
-District Data - MOHFW , Will automatically update every 1 hour
+District Data - MOHFW , Will automatically update every 6 hour
