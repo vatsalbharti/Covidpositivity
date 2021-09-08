@@ -20,7 +20,6 @@ date1 = ordinal(today.day) + monthname[today.month - 1]
 date1 = date1.replace('th','')[:5]
 date2 = str(today.day) + monthname[today.month - 1].lower()
 date2 = date2[:5]
-date2 = date2.replace('sept','Sept')
 currentdate = str(today.date())
 
 csv = pd.read_csv('districtdata.csv', header=0)
