@@ -18,6 +18,7 @@ ordinal = lambda n: "%d%s" % (n,"tsnrhtdd"[(n//10%10!=1)*(n%10<4)*n%10::4])
 monthname = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 date1 = ordinal(today.day) + monthname[today.month - 1]
 date1 = date1.replace('th','')[:5]
+date1 = date1 + '2022'
 date2 = str(today.day) + monthname[today.month - 1].lower()
 date2 = date2[:6]
 currentdate = str(today.date())
